@@ -11,9 +11,9 @@ const openapi = fromHono(app, {
   docs_url: '/',
 })
 
-openapi.get('/api/tasks', TaskList)
-openapi.post('/api/tasks', TaskCreate)
-openapi.get('/api/tasks/:taskSlug', TaskFetch)
-openapi.delete('/api/tasks/:taskSlug', TaskDelete)
+openapi.get('/tasks', TaskList)
+openapi.post('/tasks', TaskCreate)
+openapi.get('/tasks/:taskSlug', TaskFetch)
+openapi.delete('/tasks/:taskSlug', TaskDelete)
 
 export default app
