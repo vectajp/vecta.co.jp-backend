@@ -17,13 +17,12 @@ Cloudflare Workers で稼働します。
 - Node.js 16.x 以上
 - npm または Bun
 
-### インストール
+### Get Started
 
-```bash
-# 依存関係のインストール
-npm install
-# または
-bun install
+リポジトリを `git clone` し、以下のコマンドを実行してください。
+
+```shell
+$ make bs
 ```
 
 ### 開発サーバーの起動
