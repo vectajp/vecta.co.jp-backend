@@ -11,7 +11,9 @@
     "cf-typegen": "wrangler types"
   },
   "dependencies": {
-    "hono": "4.7.10"
+    "chanfana": "2.8.0",
+    "hono": "4.7.10",
+    "zod": "3.25.28"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
