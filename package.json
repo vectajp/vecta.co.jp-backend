@@ -1,0 +1,19 @@
+{
+	"name": "vecta.co.jp-backend",
+	"scripts": {
+		"dev": "wrangler dev",
+		"deploy": "wrangler deploy --minify",
+		"start": "wrangler dev",
+		"test": "vitest",
+		"cf-typegen": "wrangler types"
+	},
+	"dependencies": {
+		"hono": "4.7.10"
+	},
+	"devDependencies": {
+		"@cloudflare/vitest-pool-workers": "0.8.19",
+		"typescript": "5.5.2",
+		"vitest": "3.0.7",
+		"wrangler": "4.16.1"
+	}
+}

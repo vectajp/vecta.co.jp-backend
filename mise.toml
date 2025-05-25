@@ -1,0 +1,19 @@
+[tools]
+bun = "1.2.13"
+node = "22.15.1"
+
+[tasks.bootstrap]
+description = "Initialize the workspace."
+run = './tools/bootstrap.sh'
+alias = "bs"
+
+[tasks.clean]
+description = "Clean this workspace."
+run = [
+    'bun run clean',
+]
+
+[tasks.doctor]
+description = "Show information about the installed tooling."
+run = './tools/doctor.sh'
+alias = "dr"
