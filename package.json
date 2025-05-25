@@ -4,7 +4,7 @@
 		"dev": "wrangler dev",
 		"deploy": "wrangler deploy --minify",
 		"start": "wrangler dev",
-		"test": "vitest",
+		"test": "vitest run",
 		"cf-typegen": "wrangler types"
 	},
 	"dependencies": {
