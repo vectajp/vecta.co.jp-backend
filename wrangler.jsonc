@@ -28,6 +28,18 @@
    * databases, object storage, AI inference, real-time communication and more.
    * https://developers.cloudflare.com/workers/runtime-apis/bindings/
    */
+  
+  /**
+   * D1 Database
+   * https://developers.cloudflare.com/d1/
+   */
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "vecta_tasks",
+      "database_id": "vecta_tasks"
+    }
+  ],
 
   /**
    * Environment Variables

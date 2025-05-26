@@ -50,32 +50,30 @@ export class TaskFetch extends OpenAPIRoute {
     // Retrieve the validated slug
     const { taskSlug } = data.params
 
-    // Implement your own object fetch here
+    const result = await c.env.DB.prepare(
+      "SELECT * FROM tasks WHERE slug = ?"
+    ).bind(taskSlug).first();
 
-    const exists = true
-
-    // @ts-ignore: check if the object exists
-    if (exists === false) {
+    if (!result) {
       return Response.json(
         {
           success: false,
-          error: 'Object not found',
+          error: 'Task not found',
         },
         {
           status: 404,
-        },
+        }
       )
     }
 
+    const task = {
+      ...result,
+      completed: result.completed === 1
+    };
+
     return {
       success: true,
-      task: {
-        name: 'my task',
-        slug: taskSlug,
-        description: 'this needs to be done',
-        completed: false,
-        due_date: new Date().toISOString().slice(0, 10),
-      },
+      task
     }
   }
 }
