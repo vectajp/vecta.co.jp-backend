@@ -36,7 +36,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "vecta_tasks"
+      "database_name": "vecta_tasks",
+      "database_id": "${DATABASE_ID}"
     }
   ],
 
