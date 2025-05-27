@@ -41,7 +41,27 @@ export class TaskCreate extends OpenAPIRoute {
 		// Retrieve the validated request body
 		const taskToCreate = data.body;
 
-		// Implement your own object insertion here
+		const result = await c.env.DB.prepare(
+			"INSERT INTO tasks (name, slug, description, completed, due_date) VALUES (?, ?, ?, ?, ?)"
+		).bind(
+			taskToCreate.name,
+			taskToCreate.slug,
+			taskToCreate.description || null,
+			taskToCreate.completed ? 1 : 0, // SQLite stores booleans as 0/1
+			taskToCreate.due_date
+		).run();
+
+		if (!result.success) {
+			return Response.json(
+				{
+					success: false,
+					error: "Failed to create task",
+				},
+				{
+					status: 500,
+				}
+			);
+		}
 
 		// return the new task
 		return {

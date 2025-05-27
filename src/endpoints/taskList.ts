@@ -44,26 +44,27 @@ export class TaskList extends OpenAPIRoute {
     // Retrieve the validated parameters
     const { page, isCompleted } = data.query
 
-    // Implement your own object list here
+    let query = "SELECT * FROM tasks";
+    const params = [];
+    
+    if (isCompleted !== undefined) {
+      query += " WHERE completed = ?";
+      params.push(isCompleted ? 1 : 0);
+    }
+    
+    query += " ORDER BY due_date ASC LIMIT 20 OFFSET ?";
+    params.push(page * 20);
+
+    const result = await c.env.DB.prepare(query).bind(...params).all();
+
+    const tasks = (result.results || []).map(task => ({
+      ...task,
+      completed: task.completed === 1
+    }));
 
     return {
       success: true,
-      tasks: [
-        {
-          name: 'Clean my room',
-          slug: 'clean-room',
-          description: null,
-          completed: false,
-          due_date: '2025-01-05',
-        },
-        {
-          name: 'Build something awesome with Cloudflare Workers',
-          slug: 'cloudflare-workers',
-          description: 'Lorem Ipsum',
-          completed: true,
-          due_date: '2022-12-24',
-        },
-      ],
+      tasks
     }
   }
 }
