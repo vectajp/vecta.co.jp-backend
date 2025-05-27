@@ -15,6 +15,13 @@
       "pattern": "api.vecta.co.jp",
       "custom_domain": true
     }
+  ],
+	"d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "prod-db-vectacojp",
+      "database_id": "c3ab2b5f-203c-42ff-955e-77b8441855a0"
+    }
   ]
   /**
    * Smart Placement
