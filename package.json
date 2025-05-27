@@ -8,7 +8,9 @@
     "clean": "git clean -xdf node_modules",
     "check": "biome check",
     "check:fix": "biome check --write",
-    "cf-typegen": "wrangler types"
+    "cf-typegen": "wrangler types",
+    "db:migrate:local": "wrangler d1 execute DB --local --file=./migrations/0001_create_tasks_table.sql",
+    "db:migrate:remote": "wrangler d1 execute DB --remote --file=./migrations/0001_create_tasks_table.sql"
   },
   "dependencies": {
     "chanfana": "2.8.0",

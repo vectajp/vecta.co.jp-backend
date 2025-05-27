@@ -19,6 +19,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run deploy` or `bun run deploy` - Deploy to Cloudflare Workers with minification
 - `npm run cf-typegen` or `bun run cf-typegen` - Generate Cloudflare Workers types
 
+### Database
+- `npm run db:migrate:local` or `bun run db:migrate:local` - Run migrations on local D1 database
+- `npm run db:migrate:remote` or `bun run db:migrate:remote` - Run migrations on remote D1 database
+
 ### Other
 - `npm run clean` or `bun run clean` - Clean node_modules directory
 
@@ -56,3 +60,8 @@ All endpoints are OpenAPI-documented and use Zod for validation:
 - **Biome**: 2-space indentation, single quotes, semicolons as needed
 - **Custom Domain**: Configured for api.vecta.co.jp
 - **D1 Databases**: Two databases bound as `DB` (prod-d1-tutorial and prod-db-vectacojp)
+
+### Important Guidance
+
+- パッケージマネージャーはBunを使用してください
+- npxではなく、bun x を使用する
