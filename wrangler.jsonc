@@ -10,7 +10,7 @@
   "observability": {
     "enabled": true
   },
-	"routes": [
+  "routes": [
     {
       "pattern": "api.vecta.co.jp",
       "custom_domain": true
