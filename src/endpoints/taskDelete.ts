@@ -37,17 +37,47 @@ export class TaskDelete extends OpenAPIRoute {
     // Retrieve the validated slug
     const { taskSlug } = data.params
 
-    // Implement your own object deletion here
+    // First, fetch the task to return it after deletion
+    const task = await c.env.DB.prepare(
+      'SELECT slug, name, description, completed, due_date FROM tasks WHERE slug = ?',
+    )
+      .bind(taskSlug)
+      .first()
+
+    if (!task) {
+      return c.json(
+        {
+          success: false,
+          error: 'Task not found',
+        },
+        404,
+      )
+    }
+
+    // Delete the task
+    const result = await c.env.DB.prepare('DELETE FROM tasks WHERE slug = ?')
+      .bind(taskSlug)
+      .run()
+
+    if (!result.success) {
+      return c.json(
+        {
+          success: false,
+          error: 'Failed to delete task',
+        },
+        500,
+      )
+    }
 
     // Return the deleted task for confirmation
     return {
       result: {
         task: {
-          name: 'Build something awesome with Cloudflare Workers',
-          slug: taskSlug,
-          description: 'Lorem Ipsum',
-          completed: true,
-          due_date: '2022-12-24',
+          slug: task.slug as string,
+          name: task.name as string,
+          description: task.description as string | null,
+          completed: Boolean(task.completed),
+          due_date: task.due_date as string,
         },
       },
       success: true,

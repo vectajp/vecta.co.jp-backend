@@ -2,7 +2,7 @@
   "files.associations": {
     "wrangler.json": "jsonc"
   },
-	"debug.openDebug": "openOnDebugBreak",
+  "debug.openDebug": "openOnDebugBreak",
   "editor.formatOnSave": true,
   "editor.formatOnType": true,
   "editor.formatOnPaste": true,
