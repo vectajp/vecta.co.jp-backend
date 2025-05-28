@@ -1,67 +1,67 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+このファイルは、このリポジトリでコードを扱う際のClaude Code (claude.ai/code) への指針を提供します。
 
-## Common Development Commands
+## よく使う開発コマンド
 
-### Development
-- `npm run dev` or `bun run dev` - Start development server at http://localhost:8787
-- `make bs` or `make bootstrap` - Bootstrap project for initial setup
+### 開発
+- `npm run dev` または `bun run dev` - http://localhost:8787 で開発サーバーを起動
+- `make bs` または `make bootstrap` - 初回セットアップのためのプロジェクトのブートストラップ
 
-### Testing
-- `npm run test` or `bun run test` - Run tests using Vitest with Cloudflare Workers pool
+### テスト
+- `npm run test` または `bun run test` - Cloudflare Workersプールを使用してVitestでテストを実行
 
-### Code Quality
-- `npm run check` or `bun run check` - Run Biome linter
-- `npm run check:fix` or `bun run check:fix` - Run Biome linter and fix issues
+### コード品質
+- `npm run check` または `bun run check` - Biomeリンターを実行
+- `npm run check:fix` または `bun run check:fix` - Biomeリンターを実行して問題を修正
 
-### Deployment
-- `npm run deploy` or `bun run deploy` - Deploy to Cloudflare Workers with minification
-- `npm run cf-typegen` or `bun run cf-typegen` - Generate Cloudflare Workers types
+### デプロイ
+- `npm run deploy` または `bun run deploy` - 圧縮してCloudflare Workersにデプロイ
+- `npm run cf-typegen` または `bun run cf-typegen` - Cloudflare Workersの型を生成
 
-### Database
-- `npm run db:migrate:local` or `bun run db:migrate:local` - Run migrations on local D1 database
-- `npm run db:migrate:remote` or `bun run db:migrate:remote` - Run migrations on remote D1 database
+### データベース
+- `npm run db:migrate:local` または `bun run db:migrate:local` - ローカルD1データベースでマイグレーションを実行
+- `npm run db:migrate:remote` または `bun run db:migrate:remote` - リモートD1データベースでマイグレーションを実行
 
-### Other
-- `npm run clean` or `bun run clean` - Clean node_modules directory
+### その他
+- `npm run clean` または `bun run clean` - node_modulesディレクトリをクリーン
 
-## Architecture Overview
+## アーキテクチャ概要
 
-This is a Cloudflare Workers backend API for Vecta's corporate website using:
+これはVectaのコーポレートサイト用のCloudflare WorkersバックエンドAPIで、以下を使用しています：
 
-- **Runtime**: Cloudflare Workers
-- **Framework**: Hono with Chanfana for OpenAPI documentation
-- **Validation**: Zod schemas
-- **Database**: Cloudflare D1 (bindings configured in wrangler.jsonc)
-- **Testing**: Vitest with Cloudflare Workers pool
-- **Code Quality**: Biome for linting and formatting
-- **Git Hooks**: Lefthook with Commitlint for conventional commits
+- **ランタイム**: Cloudflare Workers
+- **フレームワーク**: OpenAPIドキュメント用のChanfanaを使用したHono
+- **バリデーション**: Zodスキーマ
+- **データベース**: Cloudflare D1 (wrangler.jsonc でバインディング設定)
+- **テスト**: Cloudflare WorkersプールのVitest
+- **コード品質**: リントとフォーマット用のBiome
+- **Gitフック**: 規約に従ったコミット用のCommitlintを使用したLefthook
 
-### Project Structure
+### プロジェクト構造
 
-The API is built around a REST interface with OpenAPI documentation:
+APIはOpenAPIドキュメント付きのRESTインターフェースを中心に構築されています：
 
-- `src/index.ts` - Main application entry point, sets up Hono app with OpenAPI routes
-- `src/endpoints/` - API endpoint handlers extending OpenAPIRoute from Chanfana
-- `src/types.ts` - Shared TypeScript types and Zod schemas
+- `src/index.ts` - メインアプリケーションのエントリーポイント、OpenAPIルートでHonoアプリを設定
+- `src/endpoints/` - ChanfanaのOpenAPIRouteを拡張したAPIエンドポイントハンドラー
+- `src/types.ts` - 共有TypeScript型とZodスキーマ
 
-### API Endpoints
+### APIエンドポイント
 
-All endpoints are OpenAPI-documented and use Zod for validation:
-- `GET /tasks` - List tasks with pagination and filtering
-- `POST /tasks` - Create a new task
-- `GET /tasks/:taskSlug` - Fetch a specific task
-- `DELETE /tasks/:taskSlug` - Delete a task
+すべてのエンドポイントはOpenAPIでドキュメント化され、バリデーションにZodを使用しています：
+- `GET /tasks` - ページネーションとフィルタリングでタスクを一覧表示
+- `POST /tasks` - 新しいタスクを作成
+- `GET /tasks/:taskSlug` - 特定のタスクを取得
+- `DELETE /tasks/:taskSlug` - タスクを削除
 
-### Key Configuration
+### 主要な設定
 
-- **TypeScript**: Strict mode enabled, ES2021 target
-- **Biome**: 2-space indentation, single quotes, semicolons as needed
-- **Custom Domain**: Configured for api.vecta.co.jp
-- **D1 Databases**: Two databases bound as `DB` (prod-d1-tutorial and prod-db-vectacojp)
+- **TypeScript**: 厳格モード有効、ES2021ターゲット
+- **Biome**: 2スペースのインデント、シングルクォート、必要に応じてセミコロン
+- **カスタムドメイン**: api.vecta.co.jp に設定
+- **D1データベース**: `DB`として2つのデータベースがバインド (prod-d1-tutorial と prod-db-vectacojp)
 
-### Important Guidance
+### 重要な指針
 
 - パッケージマネージャーはBunを使用してください
 - npxではなく、bun x を使用する
