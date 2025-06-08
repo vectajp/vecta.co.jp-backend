@@ -41,7 +41,8 @@
    * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
    */
   "vars": {
-    "ENVIRONMENT": "production"
+    "ENVIRONMENT": "production",
+    "CORS_ALLOWED_ORIGINS": "https://vecta.co.jp,https://www.vecta.co.jp" // 未設定の場合はすべて拒否
   }
   /**
    * Note: Use secrets to store sensitive data.

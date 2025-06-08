@@ -6,6 +6,7 @@ declare namespace Cloudflare {
 		DB: D1Database;
 		API_KEY: string;
 		ENVIRONMENT?: string;
+		CORS_ALLOWED_ORIGINS?: string;
 	}
 }
 interface Env extends Cloudflare.Env {}

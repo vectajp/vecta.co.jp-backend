@@ -143,6 +143,14 @@ bun run deploy
 
 Cloudflare Workers にデプロイされます。
 
+### 環境変数
+
+以下の環境変数を設定できます：
+
+- `CORS_ALLOWED_ORIGINS`: CORS許可オリジンのカンマ区切りリスト（必須）
+  - 未設定の場合: すべてのオリジンを拒否
+  - 例: `CORS_ALLOWED_ORIGINS="https://vecta.co.jp,https://www.vecta.co.jp,http://localhost:4321"`
+
 ### テスト
 
 ```bash
