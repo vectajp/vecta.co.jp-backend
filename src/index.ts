@@ -24,6 +24,12 @@ app.use('/tasks/*', async (c, next) => {
 })
 
 app.use('/contacts/*', async (c, next) => {
+  // Skip auth for POST /contacts
+  if (c.req.method === 'POST' && c.req.path === '/contacts') {
+    await next()
+    return
+  }
+
   if (c.env.ENVIRONMENT !== 'development') {
     return apiKeyAuth(c, next)
   }
