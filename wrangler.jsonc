@@ -22,7 +22,7 @@
       "database_name": "prod-db-vectacojp",
       "database_id": "c3ab2b5f-203c-42ff-955e-77b8441855a0"
     }
-  ]
+  ],
   /**
    * Smart Placement
    * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
@@ -40,7 +40,9 @@
    * Environment Variables
    * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
    */
-  // "vars": { "MY_VARIABLE": "production_value" },
+  "vars": {
+    "ENVIRONMENT": "production"
+  }
   /**
    * Note: Use secrets to store sensitive data.
    * https://developers.cloudflare.com/workers/configuration/secrets/
