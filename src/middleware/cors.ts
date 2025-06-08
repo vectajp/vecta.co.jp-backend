@@ -5,11 +5,13 @@ export const corsMiddleware: MiddlewareHandler = async (c, next) => {
 
   // 環境変数からCORS許可オリジンを取得（カンマ区切り）
   const corsOrigins = c.env.CORS_ALLOWED_ORIGINS
+  let isAllowed = false
 
-  if (corsOrigins) {
+  if (corsOrigins && origin) {
     // 環境変数が設定されている場合のみ、指定されたオリジンを許可
     const allowedOrigins = corsOrigins.split(',').map((o: string) => o.trim())
-    if (origin && allowedOrigins.includes(origin)) {
+    if (allowedOrigins.includes(origin)) {
+      isAllowed = true
       c.header('Access-Control-Allow-Origin', origin)
       c.header(
         'Access-Control-Allow-Methods',
@@ -19,11 +21,10 @@ export const corsMiddleware: MiddlewareHandler = async (c, next) => {
       c.header('Access-Control-Max-Age', '86400')
     }
   }
-  // 環境変数が設定されていない場合はCORSヘッダーを設定しない（すべて拒否）
 
   // OPTIONSリクエストの処理
   if (c.req.method === 'OPTIONS') {
-    return c.body(null, 204)
+    return isAllowed ? c.body(null, 204) : c.text('Forbidden', 403)
   }
 
   await next()
