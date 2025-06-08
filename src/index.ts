@@ -1,5 +1,8 @@
 import { fromHono } from 'chanfana'
 import { Hono } from 'hono'
+import { ContactCreateAPI } from './endpoints/contactCreate'
+import { ContactFetchAPI } from './endpoints/contactFetch'
+import { ContactListAPI } from './endpoints/contactList'
 import { TaskCreate } from './endpoints/taskCreate'
 import { TaskDelete } from './endpoints/taskDelete'
 import { TaskFetch } from './endpoints/taskFetch'
@@ -20,13 +23,26 @@ app.use('/tasks/*', async (c, next) => {
   await next()
 })
 
+app.use('/contacts/*', async (c, next) => {
+  if (c.env.ENVIRONMENT !== 'development') {
+    return apiKeyAuth(c, next)
+  }
+  await next()
+})
+
 const openapi = fromHono(app, {
   docs_url: '/',
 })
 
+// Tasks endpoints
 openapi.get('/tasks', TaskList)
 openapi.post('/tasks', TaskCreate)
 openapi.get('/tasks/:taskSlug', TaskFetch)
 openapi.delete('/tasks/:taskSlug', TaskDelete)
+
+// Contacts endpoints
+openapi.get('/contacts', ContactListAPI)
+openapi.post('/contacts', ContactCreateAPI)
+openapi.get('/contacts/:contactId', ContactFetchAPI)
 
 export default app
