@@ -47,7 +47,8 @@ export class TaskList extends OpenAPIRoute {
       const { page, isCompleted } = data.query
 
       // Build query
-      let query = 'SELECT slug, name, description, completed, due_date FROM tasks'
+      let query =
+        'SELECT slug, name, description, completed, due_date FROM tasks'
       const params: (string | number)[] = []
 
       if (isCompleted !== undefined) {
@@ -89,7 +90,7 @@ export class TaskList extends OpenAPIRoute {
           success: false,
           error: 'Database error occurred',
         },
-        500
+        500,
       )
     }
   }
