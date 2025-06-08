@@ -11,6 +11,7 @@ export class TaskList extends OpenAPIRoute {
         page: Num({
           description: 'Page number',
           default: 0,
+          required: false,
         }),
         isCompleted: Bool({
           description: 'Filter by completed flag',
@@ -57,7 +58,8 @@ export class TaskList extends OpenAPIRoute {
 
     // Add pagination
     const limit = 20
-    const offset = page * limit
+    const pageNum = page ?? 0
+    const offset = pageNum * limit
     query += ' LIMIT ? OFFSET ?'
     params.push(limit, offset)
 

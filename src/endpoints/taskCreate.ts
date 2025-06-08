@@ -67,7 +67,7 @@ export class TaskCreate extends OpenAPIRoute {
         taskToCreate.name,
         taskToCreate.description || null,
         taskToCreate.completed ? 1 : 0,
-        taskToCreate.due_date,
+        taskToCreate.due_date || null,
       )
       .run()
 

@@ -9,5 +9,5 @@ export const Task = z.object({
   slug: Str(),
   description: Str({ required: false }),
   completed: z.boolean().default(false),
-  due_date: DateTime(),
+  due_date: DateTime({ required: false }),
 })
