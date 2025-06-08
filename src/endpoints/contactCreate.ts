@@ -4,6 +4,14 @@ import { z } from 'zod'
 import type { AppContext } from '../types'
 import { ContactCreate } from '../types'
 
+/**
+ * お問い合わせ作成エンドポイント
+ *
+ * POST /contacts
+ *
+ * お問い合わせフォームから送信されたデータをデータベースに保存します。
+ * このエンドポイントは認証不要で、公開されています。
+ */
 export class ContactCreateAPI extends OpenAPIRoute {
   schema = {
     tags: ['Contacts'],
@@ -65,6 +73,14 @@ export class ContactCreateAPI extends OpenAPIRoute {
     },
   }
 
+  /**
+   * リクエストハンドラー
+   *
+   * 1. リクエストボディのバリデーション
+   * 2. 一意のIDを生成（nanoid使用）
+   * 3. データベースにお問い合わせ情報を保存
+   * 4. 成功/失敗レスポンスを返却
+   */
   async handle(c: AppContext) {
     try {
       const data = await this.getValidatedData<typeof this.schema>()

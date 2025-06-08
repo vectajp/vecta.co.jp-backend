@@ -2,6 +2,14 @@ import { OpenAPIRoute } from 'chanfana'
 import { z } from 'zod'
 import type { AppContext } from '../types'
 
+/**
+ * お問い合わせ詳細取得エンドポイント
+ *
+ * GET /contacts/:contactId
+ *
+ * 指定されたIDのお問い合わせ情報を取得します。
+ * このエンドポイントはAPIキー認証が必要です。
+ */
 export class ContactFetchAPI extends OpenAPIRoute {
   schema = {
     tags: ['Contacts'],
@@ -59,6 +67,14 @@ export class ContactFetchAPI extends OpenAPIRoute {
     },
   }
 
+  /**
+   * リクエストハンドラー
+   *
+   * 1. URLパラメータからcontactIdを取得
+   * 2. データベースから該当するお問い合わせを検索
+   * 3. 存在しない場合は404エラーを返却
+   * 4. 存在する場合はお問い合わせ情報を返却
+   */
   async handle(c: AppContext) {
     try {
       const data = await this.getValidatedData<typeof this.schema>()

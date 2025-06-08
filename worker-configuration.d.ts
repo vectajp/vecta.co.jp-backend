@@ -7,6 +7,7 @@ declare namespace Cloudflare {
 		API_KEY: string;
 		ENVIRONMENT?: string;
 		CORS_ALLOWED_ORIGINS?: string;
+		ALLOWED_REFERERS?: string;
 	}
 }
 interface Env extends Cloudflare.Env {}

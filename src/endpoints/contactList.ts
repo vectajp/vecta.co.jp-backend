@@ -2,6 +2,15 @@ import { OpenAPIRoute } from 'chanfana'
 import { z } from 'zod'
 import type { AppContext } from '../types'
 
+/**
+ * お問い合わせ一覧取得エンドポイント
+ *
+ * GET /contacts
+ *
+ * お問い合わせの一覧をページネーション付きで取得します。
+ * ステータスによるフィルタリングも可能です。
+ * このエンドポイントはAPIキー認証が必要です。
+ */
 export class ContactListAPI extends OpenAPIRoute {
   schema = {
     tags: ['Contacts'],
@@ -60,6 +69,15 @@ export class ContactListAPI extends OpenAPIRoute {
     },
   }
 
+  /**
+   * リクエストハンドラー
+   *
+   * 1. クエリパラメータからページネーション情報とフィルタを取得
+   * 2. 条件に応じたSQLクエリを構築
+   * 3. 総件数を取得（ページネーション計算用）
+   * 4. 指定されたページのデータを取得
+   * 5. ページネーション情報とともにレスポンスを返却
+   */
   async handle(c: AppContext) {
     try {
       const data = await this.getValidatedData<typeof this.schema>()
