@@ -1,8 +1,10 @@
 import { OpenAPIRoute } from 'chanfana'
 import { nanoid } from 'nanoid'
 import { z } from 'zod'
+import { sendContactEmail } from '../services/email'
 import type { AppContext } from '../types'
 import { ContactCreate } from '../types'
+import { formatDateJapanese, now } from '../utils/date'
 
 /**
  * お問い合わせ作成エンドポイント
@@ -86,7 +88,7 @@ export class ContactCreateAPI extends OpenAPIRoute {
       const data = await this.getValidatedData<typeof this.schema>()
       const contactData = data.body
 
-      const now = new Date().toISOString()
+      const currentTime = now()
       const id = nanoid()
 
       const contact = {
@@ -98,8 +100,8 @@ export class ContactCreateAPI extends OpenAPIRoute {
         subject: contactData.subject,
         message: contactData.message,
         status: 'new',
-        created_at: now,
-        updated_at: now,
+        created_at: currentTime,
+        updated_at: currentTime,
       }
 
       const result = await c.env.DB.prepare(
@@ -128,6 +130,23 @@ export class ContactCreateAPI extends OpenAPIRoute {
           },
           500,
         )
+      }
+
+      // メール送信
+      try {
+        await sendContactEmail(
+          {
+            name: contact.name,
+            email: contact.email,
+            subject: contact.subject,
+            message: contact.message,
+            submittedAt: formatDateJapanese(contact.created_at),
+          },
+          c.env,
+        )
+      } catch (emailError) {
+        // メール送信に失敗してもレスポンスは成功として返す（データは保存されているため）
+        console.error('Failed to send email notification:', emailError)
       }
 
       return c.json(

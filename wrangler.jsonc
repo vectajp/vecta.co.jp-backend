@@ -43,12 +43,15 @@
   "vars": {
     "ENVIRONMENT": "production",
     "CORS_ALLOWED_ORIGINS": "https://vecta.co.jp,https://www.vecta.co.jp", // 未設定の場合はすべて拒否
-    "ALLOWED_REFERERS": "https://vecta.co.jp/,https://www.vecta.co.jp/" // Refererチェック用（未設定の場合はすべて拒否）
+    "ALLOWED_REFERERS": "https://vecta.co.jp/,https://www.vecta.co.jp/", // Refererチェック用（未設定の場合はすべて拒否）
+    "MAIL_FROM": "noreply@vecta.co.jp",
+    "MAIL_TO": "contact@vecta.co.jp"
   }
   /**
    * Note: Use secrets to store sensitive data.
    * https://developers.cloudflare.com/workers/configuration/secrets/
    */
+  // "secrets": ["SENDGRID_API_KEY"]
 
   /**
    * Static Assets

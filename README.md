@@ -35,6 +35,7 @@ Cloudflare Workers で稼働します。
 - **API仕様**: OpenAPI ([Chanfana](https://github.com/cloudflare/chanfana) - HonoアプリケーションにOpenAPI仕様を追加するライブラリ)
 - **データベース**: Cloudflare D1
 - **認証**: APIキー認証（詳細は[セキュリティ設定](docs/SECURITY.md)を参照）
+- **メール送信**: SendGrid（詳細は[メール設定](docs/MAIL_SETUP.md)を参照）
 
 ## 開発方法
 
