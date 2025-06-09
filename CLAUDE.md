@@ -66,9 +66,17 @@ All endpoints are OpenAPI-documented and use Zod for validation:
 - パッケージマネージャーはBunを使用してください
 - npxではなく、bun x を使用する
 - 日付処理には`new Date`を使用せず、`src/utils/date.ts`の日付ユーティリティ関数を使用してください
-  - `now()`: 現在時刻取得（東京時間）
-  - `formatDate()`: 日付フォーマット
+  - `now()`: 現在時刻取得（東京時間、YYYY-MM-DD HH:mm:ss形式）
+  - `nowUTC()`: 現在時刻取得（UTC、ISO 8601形式）
+  - `formatDate()`: 日付フォーマット（データベースの日付も東京時間として扱う）
   - `formatDateJapanese()`: 日本語形式の日付
-  - `toTokyoTime()`: 東京時間への変換
+  - `toTokyoTime()`: 東京時間への変換（YYYY-MM-DD HH:mm:ss形式）
+  - `parseAsTokyoTime()`: データベースの日付文字列を東京時間のmomentオブジェクトとして解釈
   - `tokyoDate()`: Dateオブジェクト作成
   - 必要な日付処理関数がない場合は、`src/utils/date.ts`に新しい関数を追加してください
+
+#### タイムゾーンに関する重要事項
+- Cloudflare D1データベースは内部的にUTCで動作しますが、このプロジェクトでは東京時間（JST）として扱います
+- データベースに保存する日付は`YYYY-MM-DD HH:mm:ss`形式で、東京時間の値をそのまま保存します
+- データベースから取得した日付は自動的に東京時間として解釈されます
+- `now()`関数は東京時間を返すため、`created_at`や`updated_at`には東京時間が保存されます
