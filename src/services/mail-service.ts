@@ -5,7 +5,7 @@
 
 export interface MailDataRequired {
   to: string
-  from: string
+  from: string | { email: string; name?: string }
   subject: string
   text?: string
   html?: string
@@ -45,7 +45,7 @@ export class MailService {
     // SendGrid API用のペイロードを構築
     const payload: {
       personalizations: Array<{ to: Array<{ email: string }> }>
-      from: { email: string }
+      from: { email: string; name?: string }
       subject: string
       content: Array<{ type: string; value: string }>
       reply_to?: { email: string }
@@ -55,7 +55,13 @@ export class MailService {
           to: [{ email: msg.to }],
         },
       ],
-      from: { email: msg.from },
+      from:
+        typeof msg.from === 'string'
+          ? { email: msg.from }
+          : {
+              email: msg.from.email,
+              ...(msg.from.name && { name: msg.from.name }),
+            },
       subject: msg.subject,
       content: [],
     }

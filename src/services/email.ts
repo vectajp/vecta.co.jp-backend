@@ -44,7 +44,7 @@ ${data.submittedAt}
 <body style="font-family: 'Hiragino Sans', 'Meiryo', sans-serif; line-height: 1.6; color: #333;">
   <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
     <h2 style="color: #2c3e50;">新しいお問い合わせがありました</h2>
-    
+
     <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
       <tr>
         <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold; width: 30%;">お名前</td>
@@ -77,7 +77,7 @@ ${data.submittedAt}
   // メールメッセージを構築
   const msg = {
     to: env.MAIL_TO,
-    from: env.MAIL_FROM,
+    from: { email: env.MAIL_FROM, name: 'Vectaお知らせ' },
     replyTo: data.email,
     subject: `【お問い合わせ】${data.subject}`,
     text: textContent,
