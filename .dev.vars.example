@@ -2,3 +2,6 @@ ENVIRONMENT=development
 API_KEY=
 CORS_ALLOWED_ORIGINS=http://localhost:4321
 ALLOWED_REFERERS=http://localhost:4321/
+MAIL_FROM=noreply@example.com
+MAIL_TO=dev@example.com
+SENDGRID_API_KEY=test

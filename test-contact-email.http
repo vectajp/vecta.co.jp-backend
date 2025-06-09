@@ -1,0 +1,43 @@
+### ローカル環境でお問い合わせ投稿テスト（SendGrid）
+# 注意: SENDGRID_API_KEYを.dev.varsに設定してください
+POST http://localhost:8787/contacts
+Content-Type: application/json
+Origin: http://localhost:4321
+Referer: http://localhost:4321/
+
+{
+  "name": "テスト太郎",
+  "email": "test@example.com",
+  "phone": "03-1234-5678",
+  "company": "テスト株式会社",
+  "subject": "サービスについてのお問い合わせ",
+  "message": "これはSendGrid経由のテストメッセージです。\nメール送信機能が正しく動作するか確認しています。"
+}
+
+### ローカル環境でCORS/Referer検証テスト（失敗するはず）
+POST http://localhost:8787/contacts
+Content-Type: application/json
+Origin: https://evil-site.com
+Referer: https://evil-site.com/
+
+{
+  "name": "悪意のあるテスト",
+  "email": "evil@example.com",
+  "subject": "不正なリクエスト",
+  "message": "このリクエストは拒否されるはずです。"
+}
+
+### 本番環境でお問い合わせ投稿テスト（慎重に実行）
+# 注意: 事前にSENDGRID_API_KEYをSecretとして設定してください
+# bun x wrangler secret put SENDGRID_API_KEY
+# POST https://api.vecta.co.jp/contacts
+# Content-Type: application/json
+# Origin: https://vecta.co.jp
+# Referer: https://vecta.co.jp/
+# 
+# {
+#   "name": "本番テスト",
+#   "email": "production-test@example.com",
+#   "subject": "本番環境テスト",
+#   "message": "本番環境でのSendGridメール送信テストです。"
+# }
