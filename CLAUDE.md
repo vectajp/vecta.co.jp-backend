@@ -65,3 +65,10 @@ All endpoints are OpenAPI-documented and use Zod for validation:
 
 - パッケージマネージャーはBunを使用してください
 - npxではなく、bun x を使用する
+- 日付処理には`new Date`を使用せず、`src/utils/date.ts`の日付ユーティリティ関数を使用してください
+  - `now()`: 現在時刻取得（東京時間）
+  - `formatDate()`: 日付フォーマット
+  - `formatDateJapanese()`: 日本語形式の日付
+  - `toTokyoTime()`: 東京時間への変換
+  - `tokyoDate()`: Dateオブジェクト作成
+  - 必要な日付処理関数がない場合は、`src/utils/date.ts`に新しい関数を追加してください
