@@ -1,82 +1,126 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with
+code in this repository.
 
 ## Common Development Commands
 
+Use Bun as the package manager. Prefer `bun run` and `bun x`; do not use `npx`.
+
 ### Development
-- `npm run dev` or `bun run dev` - Start development server at http://localhost:8787
-- `make bs` or `make bootstrap` - Bootstrap project for initial setup
+
+- `bun run dev` - Start the Wrangler development server at
+  `http://localhost:8787`
+- `make bs` or `make bootstrap` - Bootstrap the local project setup
 
 ### Testing
-- `npm run test` or `bun run test` - Run tests using Vitest with Cloudflare Workers pool
+
+- `bun run test` - Run the Bun test suite
 
 ### Code Quality
-- `npm run check` or `bun run check` - Run Biome linter
-- `npm run check:fix` or `bun run check:fix` - Run Biome linter and fix issues
+
+- `bun run check` - Run Biome checks
+- `bun run check:fix` - Run Biome checks and write fixes
 
 ### Deployment
-- `npm run deploy` or `bun run deploy` - Deploy to Cloudflare Workers with minification
-- `npm run cf-typegen` or `bun run cf-typegen` - Generate Cloudflare Workers types
+
+- `bun run deploy` - Deploy to Cloudflare Workers with minification
+- `bun run cf-typegen` - Generate Cloudflare Workers types
 
 ### Database
-- `npm run db:migrate:local` or `bun run db:migrate:local` - Run migrations on local D1 database
-- `npm run db:migrate:remote` or `bun run db:migrate:remote` - Run migrations on remote D1 database
+
+- `bun run db:migrate:local` - Run the D1 migration against the local database
+- `bun run db:migrate:remote` - Run the D1 migration against the remote database
+- `bun run db:reset:local` - Remove local Wrangler D1 state for development
 
 ### Other
-- `npm run clean` or `bun run clean` - Clean node_modules directory
+
+- `bun run clean` - Clean `node_modules`
 
 ## Architecture Overview
 
-This is a Cloudflare Workers backend API for Vecta's corporate website using:
+This is the Cloudflare Workers backend API for Vecta's corporate website. It
+uses:
 
 - **Runtime**: Cloudflare Workers
-- **Framework**: Hono with Chanfana for OpenAPI documentation
-- **Validation**: Zod schemas
-- **Database**: Cloudflare D1 (bindings configured in wrangler.jsonc)
-- **Testing**: Vitest with Cloudflare Workers pool
-- **Code Quality**: Biome for linting and formatting
-- **Git Hooks**: Lefthook with Commitlint for conventional commits
+- **Framework**: Hono
+- **OpenAPI**: Chanfana, served from `/`
+- **Validation**: Zod schemas in `src/types.ts`
+- **Database**: Cloudflare D1, bound as `DB` in `wrangler.jsonc`
+- **Mail delivery**: SendGrid REST API through `src/services/mail-service.ts`
+- **Testing**: Bun test with mocked D1 bindings
+- **Code quality**: Biome for linting and formatting
+- **Git hooks**: Lefthook with Commitlint for Conventional Commits
 
 ### Project Structure
 
-The API is built around a REST interface with OpenAPI documentation:
-
-- `src/index.ts` - Main application entry point, sets up Hono app with OpenAPI routes
-- `src/endpoints/` - API endpoint handlers extending OpenAPIRoute from Chanfana
+- `src/index.ts` - Main Hono app, middleware registration, and OpenAPI route
+  registration
+- `src/endpoints/` - Contact API handlers extending Chanfana `OpenAPIRoute`
+- `src/middleware/` - API key authentication, optional referer checks, and CORS
+- `src/services/` - SendGrid-compatible mail notification implementation
 - `src/types.ts` - Shared TypeScript types and Zod schemas
+- `src/utils/date.ts` - Tokyo-time date helpers
+- `migrations/` - D1 SQL migrations
+- `docs/` - Human-facing setup notes for security and mail delivery
+- `tools/` - Bootstrap, doctor, and shared shell helpers
 
 ### API Endpoints
 
-All endpoints are OpenAPI-documented and use Zod for validation:
-- `GET /tasks` - List tasks with pagination and filtering
-- `POST /tasks` - Create a new task
-- `GET /tasks/:taskSlug` - Fetch a specific task
-- `DELETE /tasks/:taskSlug` - Delete a task
+All current endpoints are OpenAPI-documented and use Zod validation:
+
+- `GET /contacts` - List contact inquiries with pagination and optional
+  `status` filtering
+- `POST /contacts` - Create a contact inquiry from the public website form
+- `GET /contacts/:contactId` - Fetch a single contact inquiry by ID
+
+There are no active `tasks` endpoints in the current codebase.
+
+### Contact Data Flow
+
+`POST /contacts` validates the request body, generates an ID with `nanoid`,
+stores the inquiry in D1, then sends an email notification. Email delivery errors
+are logged, but the API still returns success if the database insert succeeded.
+
+The `contacts` table stores:
+
+- User-submitted fields: `name`, `email`, `phone`, `company`, `subject`,
+  `message`
+- System fields: `id`, `status`, `created_at`, `updated_at`
+
+### Security Behavior
+
+- `POST /contacts` is intentionally public for the inquiry form.
+- Other `/contacts/*` requests require `X-API-Key` outside the development
+  environment.
+- CORS is controlled by `CORS_ALLOWED_ORIGINS`; unset origins are not allowed.
+- `refererCheck` exists in `src/middleware/auth.ts`, but it is not currently
+  registered in `src/index.ts`.
+- Store production API keys and `SENDGRID_API_KEY` as Cloudflare Workers
+  secrets. Do not commit `.dev.vars` values or other secrets.
 
 ### Key Configuration
 
 - **TypeScript**: Strict mode enabled, ES2021 target
 - **Biome**: 2-space indentation, single quotes, semicolons as needed
-- **Custom Domain**: Configured for api.vecta.co.jp
-- **D1 Databases**: Two databases bound as `DB` (prod-d1-tutorial and prod-db-vectacojp)
+- **Custom domain**: `api.vecta.co.jp`
+- **D1 database**: `prod-db-vectacojp` bound as `DB`
+- **Production mail variables**: `MAIL_FROM` and `MAIL_TO` are defined in
+  `wrangler.jsonc`; `SENDGRID_API_KEY` must be a secret
 
-### Important Guidance
+### Date And Time Guidance
 
-- パッケージマネージャーはBunを使用してください
-- npxではなく、bun x を使用する
-- 日付処理には`new Date`を使用せず、`src/utils/date.ts`の日付ユーティリティ関数を使用してください
-  - `now()`: 現在時刻取得（東京時間、YYYY-MM-DD HH:mm:ss形式）
-  - `nowUTC()`: 現在時刻取得（UTC、ISO 8601形式）
-  - `formatDate()`: 日付フォーマット（データベースの日付も東京時間として扱う）
-  - `formatDateJapanese()`: 日本語形式の日付
-  - `toTokyoTime()`: 東京時間への変換（YYYY-MM-DD HH:mm:ss形式）
-  - `parseAsTokyoTime()`: データベースの日付文字列を東京時間のmomentオブジェクトとして解釈
-  - `tokyoDate()`: Dateオブジェクト作成
-  - 必要な日付処理関数がない場合は、`src/utils/date.ts`に新しい関数を追加してください
+Do not use `new Date()` directly for application timestamps. Use
+`src/utils/date.ts` helpers:
 
-#### タイムゾーンに関する重要事項
-- Cloudflare D1データベースは内部的にUTCで動作しますが、このプロジェクトでは東京時間（JST）として扱います
-- データベースに保存する日付は`YYYY-MM-DD HH:mm:ss`形式で、東京時間の値をそのまま保存します
-- データベースから取得した日付は自動的に東京時間として解釈されます
-- `now()`関数は東京時間を返すため、`created_at`や`updated_at`には東京時間が保存されます
+- `now()` - Current Tokyo time in `YYYY-MM-DD HH:mm:ss`
+- `nowUTC()` - Current UTC time in ISO 8601
+- `formatDate()` - Format a date while treating database values as Tokyo time
+- `formatDateJapanese()` - Format a date for Japanese notification text
+- `toTokyoTime()` - Convert an ISO string to `YYYY-MM-DD HH:mm:ss` Tokyo time
+- `parseAsTokyoTime()` - Parse a database datetime string as Tokyo time
+- `tokyoDate()` - Create a `Date` object from Tokyo-time interpretation
+
+Cloudflare D1 internally behaves as UTC, but this project stores date strings in
+`YYYY-MM-DD HH:mm:ss` and treats them as Tokyo time. `created_at` and
+`updated_at` should use `now()`.
