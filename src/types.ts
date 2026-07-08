@@ -4,6 +4,44 @@ import { z } from 'zod'
 
 export type AppContext = Context<{ Bindings: Env }>
 
+export const AdminLeadStatus = z.enum([
+  'new',
+  'reviewing',
+  'contacted',
+  'closed',
+  'archived',
+])
+
+export type AdminLeadStatus = z.infer<typeof AdminLeadStatus>
+
+export const AdminLead = z.object({
+  id: z.string(),
+  sourceSite: z.enum(['vecta.co.jp', 'swarrow.com']),
+  leadType: z.enum(['contact', 'document_request']),
+  companyName: z.string().optional(),
+  personName: z.string(),
+  personNameKana: z.string().optional(),
+  email: z.string(),
+  phone: z.string().optional(),
+  subject: z.string().optional(),
+  message: z.string().optional(),
+  status: AdminLeadStatus,
+  receivedAt: z.string(),
+  updatedAt: z.string(),
+  assignedTo: z.string().optional(),
+  notes: z
+    .array(
+      z.object({
+        author: z.string(),
+        body: z.string(),
+        createdAt: z.string(),
+      }),
+    )
+    .optional(),
+})
+
+export type AdminLeadData = z.infer<typeof AdminLead>
+
 export const Contact = z.object({
   id: Str(),
   name: Str({ example: '山田太郎', description: 'お名前' }),
