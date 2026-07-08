@@ -56,8 +56,10 @@ uses:
 
 - `src/index.ts` - Main Hono app, middleware registration, and OpenAPI route
   registration
-- `src/endpoints/` - Contact API handlers extending Chanfana `OpenAPIRoute`
-- `src/middleware/` - API key authentication, optional referer checks, and CORS
+- `src/endpoints/` - Contact and admin lead API handlers extending Chanfana
+  `OpenAPIRoute`
+- `src/middleware/` - API key authentication, Cloudflare Access JWT
+  authentication, optional referer checks, and CORS
 - `src/services/` - SendGrid-compatible mail notification implementation
 - `src/types.ts` - Shared TypeScript types and Zod schemas
 - `src/utils/date.ts` - Tokyo-time date helpers
@@ -73,6 +75,10 @@ All current endpoints are OpenAPI-documented and use Zod validation:
   `status` filtering
 - `POST /contacts` - Create a contact inquiry from the public website form
 - `GET /contacts/:contactId` - Fetch a single contact inquiry by ID
+- `GET /admin/leads` - List contact inquiries as the shared `vecta-admin`
+  `Lead` contract
+- `GET /admin/leads/:leadId` - Fetch a single contact inquiry as a shared
+  `Lead`
 
 There are no active `tasks` endpoints in the current codebase.
 
@@ -93,11 +99,16 @@ The `contacts` table stores:
 - `POST /contacts` is intentionally public for the inquiry form.
 - Other `/contacts/*` requests require `X-API-Key` outside the development
   environment.
+- `/admin/*` requests verify the Cloudflare Access
+  `Cf-Access-Jwt-Assertion` header with `ACCESS_TEAM_DOMAIN` and
+  `ACCESS_POLICY_AUD`.
 - CORS is controlled by `CORS_ALLOWED_ORIGINS`; unset origins are not allowed.
+- Credentialed admin CORS is controlled by `ADMIN_CORS_ALLOWED_ORIGINS`.
 - `refererCheck` exists in `src/middleware/auth.ts`, but it is not currently
   registered in `src/index.ts`.
 - Store production API keys and `SENDGRID_API_KEY` as Cloudflare Workers
-  secrets. Do not commit `.dev.vars` values or other secrets.
+  secrets. Do not commit `.dev.vars` values, Cloudflare Access production
+  values, or other secrets.
 
 ### Key Configuration
 
@@ -107,6 +118,8 @@ The `contacts` table stores:
 - **D1 database**: `prod-db-vectacojp` bound as `DB`
 - **Production mail variables**: `MAIL_FROM` and `MAIL_TO` are defined in
   `wrangler.jsonc`; `SENDGRID_API_KEY` must be a secret
+- **Admin Access variables**: `ACCESS_TEAM_DOMAIN`, `ACCESS_POLICY_AUD`,
+  `ADMIN_CORS_ALLOWED_ORIGINS`; `ACCESS_JWKS_URL` is optional
 
 ### Date And Time Guidance
 

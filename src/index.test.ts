@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import type { D1Database } from '@cloudflare/workers-types'
+import { SignJWT, exportJWK, generateKeyPair } from 'jose'
 import app from './index'
 
 // Mock D1 database with proper typing
@@ -110,5 +111,140 @@ describe('Contacts API', () => {
     })
 
     expect(res.status).toBe(200)
+  })
+})
+
+async function createAccessTokenFixture() {
+  const issuer = 'https://test.cloudflareaccess.com'
+  const audience = 'test-aud'
+  const jwksUrl = `${issuer}/cdn-cgi/access/certs`
+  const { publicKey, privateKey } = await generateKeyPair('RS256')
+  const jwk = await exportJWK(publicKey)
+  const kid = 'test-key'
+  const token = await new SignJWT({ sub: 'user@example.com' })
+    .setProtectedHeader({ alg: 'RS256', kid })
+    .setIssuer(issuer)
+    .setAudience(audience)
+    .setIssuedAt()
+    .setExpirationTime('2h')
+    .sign(privateKey)
+
+  return {
+    audience,
+    issuer,
+    jwks: { keys: [{ ...jwk, alg: 'RS256', kid, use: 'sig' }] },
+    jwksUrl,
+    token,
+  }
+}
+
+describe('Admin Leads API', () => {
+  test('rejects admin lead requests without Access JWT before querying D1', async () => {
+    let prepareCalls = 0
+    const db = {
+      prepare: () => {
+        prepareCalls += 1
+        throw new Error('D1 should not be queried')
+      },
+    } as unknown as D1Database
+
+    const req = new Request('http://localhost/admin/leads')
+    const res = await app.fetch(req, {
+      ACCESS_POLICY_AUD: 'test-aud',
+      ACCESS_TEAM_DOMAIN: 'test.cloudflareaccess.com',
+      DB: db,
+      ENVIRONMENT: 'development',
+    })
+
+    expect(res.status).toBe(401)
+    expect(prepareCalls).toBe(0)
+  })
+
+  test('returns normalized contact leads with valid Access JWT', async () => {
+    const access = await createAccessTokenFixture()
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      if (input.toString() === access.jwksUrl) {
+        return Response.json(access.jwks)
+      }
+      return originalFetch(input)
+    }) as typeof fetch
+
+    const rows = [
+      {
+        id: 'contact-001',
+        name: '山田太郎',
+        email: 'taro@example.com',
+        phone: '03-1234-5678',
+        company: 'テスト株式会社',
+        subject: '相談',
+        message: '問い合わせ本文',
+        status: 'in_progress',
+        created_at: '2026-07-08 10:11:12',
+        updated_at: '2026-07-08 11:12:13',
+      },
+    ]
+    const db = {
+      prepare: (query: string) => ({
+        bind: () => ({
+          all: async () => ({ results: rows }),
+          first: async () => ({
+            count: query.includes('COUNT') ? rows.length : undefined,
+          }),
+        }),
+      }),
+    } as unknown as D1Database
+
+    try {
+      const req = new Request('http://localhost/admin/leads', {
+        headers: {
+          'Cf-Access-Jwt-Assertion': access.token,
+        },
+      })
+      const res = await app.fetch(req, {
+        ACCESS_POLICY_AUD: access.audience,
+        ACCESS_TEAM_DOMAIN: 'test.cloudflareaccess.com',
+        DB: db,
+        ENVIRONMENT: 'development',
+      })
+
+      expect(res.status).toBe(200)
+      const json = (await res.json()) as {
+        success: boolean
+        data: Array<{
+          id: string
+          sourceSite: string
+          leadType: string
+          companyName: string
+          personName: string
+          email: string
+          phone: string
+          subject: string
+          message: string
+          status: string
+          receivedAt: string
+          updatedAt: string
+        }>
+        meta: { total: number }
+      }
+      expect(json.success).toBe(true)
+      expect(json.meta.total).toBe(1)
+      expect(json.data[0]).toEqual({
+        id: 'contact-001',
+        sourceSite: 'vecta.co.jp',
+        leadType: 'contact',
+        companyName: 'テスト株式会社',
+        personName: '山田太郎',
+        email: 'taro@example.com',
+        phone: '03-1234-5678',
+        subject: '相談',
+        message: '問い合わせ本文',
+        status: 'reviewing',
+        receivedAt: '2026-07-08T10:11:12+09:00',
+        updatedAt: '2026-07-08T11:12:13+09:00',
+      })
+    } finally {
+      globalThis.fetch = originalFetch
+    }
   })
 })

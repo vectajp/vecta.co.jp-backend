@@ -34,7 +34,7 @@ Cloudflare Workers で稼働します。
 - **バックエンドフレームワーク**: [Honoフレームワーク](https://hono-ja.pages.dev/)
 - **API仕様**: OpenAPI ([Chanfana](https://github.com/cloudflare/chanfana) - HonoアプリケーションにOpenAPI仕様を追加するライブラリ)
 - **データベース**: Cloudflare D1
-- **認証**: APIキー認証（詳細は[セキュリティ設定](docs/SECURITY.md)を参照）
+- **認証**: APIキー認証、Cloudflare Access JWT 認証（詳細は[セキュリティ設定](docs/SECURITY.md)を参照）
 - **メール送信**: SendGrid（詳細は[メール設定](docs/MAIL_SETUP.md)を参照）
 
 ## 開発方法
@@ -72,6 +72,17 @@ bun run dev
 Swagger UIでAPIの仕様を確認できます：
 - 開発環境: `http://localhost:8787/`
 - 本番環境: `https://api.vecta.co.jp/`
+
+### 管理リード API
+
+`vecta-admin` は Cloudflare Access で保護された管理系 API から、問い合わせデータを共通 `Lead` contract として参照します。
+
+| Endpoint | 用途 | 認証 |
+| --- | --- | --- |
+| `GET /admin/leads` | `vecta.co.jp` 由来の問い合わせ一覧を `Lead[]` として取得 | Cloudflare Access JWT |
+| `GET /admin/leads/:leadId` | 問い合わせ1件を `Lead` として取得 | Cloudflare Access JWT |
+
+管理系 API では `Cf-Access-Jwt-Assertion` を検証します。production では `ACCESS_TEAM_DOMAIN`、`ACCESS_POLICY_AUD`、`ADMIN_CORS_ALLOWED_ORIGINS` を deployment 環境変数または Worker secret として設定してください。`ACCESS_JWKS_URL` は検証用 JWKS endpoint を明示したい場合のみ使います。
 
 ### データベース
 
