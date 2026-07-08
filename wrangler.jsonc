@@ -43,6 +43,7 @@
   "vars": {
     "ENVIRONMENT": "production",
     "CORS_ALLOWED_ORIGINS": "https://vecta.co.jp,https://www.vecta.co.jp", // 未設定の場合はすべて拒否
+    "ADMIN_CORS_ALLOWED_ORIGINS": "http://127.0.0.1:5177,http://localhost:5177",
     "ALLOWED_REFERERS": "https://vecta.co.jp/,https://www.vecta.co.jp/", // Refererチェック用（未設定の場合はすべて拒否）
     "MAIL_FROM": "noreply@vecta.co.jp",
     "MAIL_TO": "contact@vecta.co.jp"
