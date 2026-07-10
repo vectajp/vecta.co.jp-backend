@@ -298,6 +298,59 @@ describe('Admin Leads API', () => {
     }
   })
 
+  test('returns ignored status for a single admin lead with valid Access JWT', async () => {
+    const access = await createAccessTokenFixture()
+    const restoreFetch = installAccessJwksFixture(access)
+    const row = {
+      id: 'contact-002',
+      name: '佐藤花子',
+      email: 'hanako@example.com',
+      phone: null,
+      company: null,
+      subject: '対象外の相談',
+      message: '営業対象外の問い合わせ本文',
+      status: 'ignored',
+      created_at: '2026-07-08 12:13:14',
+      updated_at: '2026-07-08 13:14:15',
+    }
+    const db = {
+      prepare: () => ({
+        bind: () => ({
+          first: async () => row,
+        }),
+      }),
+    } as unknown as D1Database
+
+    try {
+      const req = new Request('http://localhost/admin/leads/contact-002', {
+        headers: {
+          'Cf-Access-Jwt-Assertion': access.token,
+        },
+      })
+      const res = await app.fetch(req, {
+        ...adminBindings(access, db),
+      })
+
+      expect(res.status).toBe(200)
+      const json = (await res.json()) as {
+        success: boolean
+        data: {
+          id: string
+          status: string
+        }
+      }
+      expect(json).toMatchObject({
+        success: true,
+        data: {
+          id: 'contact-002',
+          status: 'ignored',
+        },
+      })
+    } finally {
+      restoreFetch()
+    }
+  })
+
   test('updates an admin lead status to ignored with valid Access JWT', async () => {
     const access = await createAccessTokenFixture()
     const restoreFetch = installAccessJwksFixture(access)
