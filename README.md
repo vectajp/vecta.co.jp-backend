@@ -81,6 +81,17 @@ Swagger UIでAPIの仕様を確認できます：
 | --- | --- | --- |
 | `GET /admin/leads` | `vecta.co.jp` 由来の問い合わせ一覧を `Lead[]` として取得 | Cloudflare Access JWT |
 | `GET /admin/leads/:leadId` | 問い合わせ1件を `Lead` として取得 | Cloudflare Access JWT |
+| `PATCH /admin/leads/:leadId/status` | 問い合わせの対応ステータスを更新し、更新後の `Lead` を取得 | Cloudflare Access JWT |
+
+`PATCH /admin/leads/:leadId/status` の request body は次の形式です。
+
+```json
+{
+  "status": "ignored"
+}
+```
+
+更新で指定できる admin status は `new` / `reviewing` / `closed` / `ignored` です。DB の `contacts.status` にはそれぞれ `new` / `in_progress` / `completed` / `ignored` として保存します。既存の `contacts.status` は `TEXT` で CHECK 制約がないため、`ignored` 追加のための migration は不要です。
 
 管理系 API では `Cf-Access-Jwt-Assertion` を検証します。production では `ACCESS_TEAM_DOMAIN`、`ACCESS_POLICY_AUD`、`ADMIN_CORS_ALLOWED_ORIGINS` を deployment 環境変数または Worker secret として設定してください。`ACCESS_JWKS_URL` は検証用 JWKS endpoint を明示したい場合のみ使います。
 
