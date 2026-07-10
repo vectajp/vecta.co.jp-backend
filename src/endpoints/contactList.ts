@@ -1,6 +1,6 @@
 import { OpenAPIRoute } from 'chanfana'
 import { z } from 'zod'
-import { ContactStatus, type AppContext } from '../types'
+import { type AppContext, ContactStatus } from '../types'
 
 /**
  * お問い合わせ一覧取得エンドポイント

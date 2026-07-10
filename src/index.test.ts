@@ -147,10 +147,7 @@ type AccessTokenFixture = Awaited<ReturnType<typeof createAccessTokenFixture>>
 
 function installAccessJwksFixture(access: AccessTokenFixture) {
   const originalFetch = globalThis.fetch
-  globalThis.fetch = (async (
-    input: RequestInfo | URL,
-    init?: RequestInit,
-  ) => {
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     if (input.toString() === access.jwksUrl) {
       return Response.json(access.jwks)
     }
