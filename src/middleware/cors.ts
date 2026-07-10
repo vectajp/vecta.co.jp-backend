@@ -17,7 +17,11 @@ export const corsMiddleware: MiddlewareHandler = async (c, next) => {
     }
   }
 
-  if (adminCorsOrigins && origin && c.req.path.startsWith('/admin/')) {
+  if (
+    adminCorsOrigins &&
+    origin &&
+    (c.req.path === '/admin' || c.req.path.startsWith('/admin/'))
+  ) {
     const allowedAdminOrigins = adminCorsOrigins
       .split(',')
       .map((o: string) => o.trim())
@@ -29,7 +33,10 @@ export const corsMiddleware: MiddlewareHandler = async (c, next) => {
 
   if (isAllowed && origin) {
     c.header('Access-Control-Allow-Origin', origin)
-    c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    c.header(
+      'Access-Control-Allow-Methods',
+      'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+    )
     c.header(
       'Access-Control-Allow-Headers',
       'Content-Type, Authorization, X-API-Key, Cf-Access-Jwt-Assertion',

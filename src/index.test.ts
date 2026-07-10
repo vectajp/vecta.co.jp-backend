@@ -482,4 +482,25 @@ describe('Admin Leads API', () => {
     expect(res.status).toBe(401)
     expect(prepareCalls).toBe(0)
   })
+
+  test('allows credentialed CORS preflight for admin lead status PATCH requests', async () => {
+    const req = new Request('http://localhost/admin/leads/contact-001/status', {
+      method: 'OPTIONS',
+      headers: {
+        Origin: 'https://admin.vecta.co.jp',
+        'Access-Control-Request-Method': 'PATCH',
+      },
+    })
+    const res = await app.fetch(req, {
+      ADMIN_CORS_ALLOWED_ORIGINS: 'https://admin.vecta.co.jp',
+      ENVIRONMENT: 'development',
+    })
+
+    expect(res.status).toBe(204)
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe(
+      'https://admin.vecta.co.jp',
+    )
+    expect(res.headers.get('Access-Control-Allow-Credentials')).toBe('true')
+    expect(res.headers.get('Access-Control-Allow-Methods')).toContain('PATCH')
+  })
 })
