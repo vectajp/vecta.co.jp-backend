@@ -183,6 +183,18 @@ describe('Admin Leads API', () => {
         created_at: '2026-07-08 10:11:12',
         updated_at: '2026-07-08 11:12:13',
       },
+      {
+        id: 'contact-002',
+        name: '佐藤花子',
+        email: 'hanako@example.com',
+        phone: null,
+        company: null,
+        subject: '対象外の相談',
+        message: '営業対象外の問い合わせ本文',
+        status: 'ignored',
+        created_at: '2026-07-08 12:13:14',
+        updated_at: '2026-07-08 13:14:15',
+      },
     ]
     const db = {
       prepare: (query: string) => ({
@@ -228,21 +240,35 @@ describe('Admin Leads API', () => {
         meta: { total: number }
       }
       expect(json.success).toBe(true)
-      expect(json.meta.total).toBe(1)
-      expect(json.data[0]).toEqual({
-        id: 'contact-001',
-        sourceSite: 'vecta.co.jp',
-        leadType: 'contact',
-        companyName: 'テスト株式会社',
-        personName: '山田太郎',
-        email: 'taro@example.com',
-        phone: '03-1234-5678',
-        subject: '相談',
-        message: '問い合わせ本文',
-        status: 'reviewing',
-        receivedAt: '2026-07-08T10:11:12+09:00',
-        updatedAt: '2026-07-08T11:12:13+09:00',
-      })
+      expect(json.meta.total).toBe(2)
+      expect(json.data).toEqual([
+        {
+          id: 'contact-001',
+          sourceSite: 'vecta.co.jp',
+          leadType: 'contact',
+          companyName: 'テスト株式会社',
+          personName: '山田太郎',
+          email: 'taro@example.com',
+          phone: '03-1234-5678',
+          subject: '相談',
+          message: '問い合わせ本文',
+          status: 'reviewing',
+          receivedAt: '2026-07-08T10:11:12+09:00',
+          updatedAt: '2026-07-08T11:12:13+09:00',
+        },
+        {
+          id: 'contact-002',
+          sourceSite: 'vecta.co.jp',
+          leadType: 'contact',
+          personName: '佐藤花子',
+          email: 'hanako@example.com',
+          subject: '対象外の相談',
+          message: '営業対象外の問い合わせ本文',
+          status: 'ignored',
+          receivedAt: '2026-07-08T12:13:14+09:00',
+          updatedAt: '2026-07-08T13:14:15+09:00',
+        },
+      ])
     } finally {
       globalThis.fetch = originalFetch
     }

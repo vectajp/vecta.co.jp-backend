@@ -26,6 +26,8 @@ export function toAdminLeadStatus(status: string): AdminLeadStatus {
       return 'reviewing'
     case 'completed':
       return 'closed'
+    case 'ignored':
+      return 'ignored'
     case 'new':
       return 'new'
     default:
