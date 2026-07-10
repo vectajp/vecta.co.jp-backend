@@ -483,6 +483,120 @@ describe('Admin Leads API', () => {
     expect(prepareCalls).toBe(0)
   })
 
+  test('deletes an admin lead with valid Access JWT', async () => {
+    const access = await createAccessTokenFixture()
+    const restoreFetch = installAccessJwksFixture(access)
+    const deleteParams: unknown[][] = []
+    const db = {
+      prepare: (query: string) => ({
+        bind: (...params: unknown[]) => {
+          if (query.startsWith('DELETE FROM contacts')) {
+            deleteParams.push(params)
+            return {
+              run: async () => ({ meta: { changes: 1 }, success: true }),
+            }
+          }
+
+          throw new Error(`Unexpected query: ${query}`)
+        },
+      }),
+    } as unknown as D1Database
+
+    try {
+      const req = new Request('http://localhost/admin/leads/contact-001', {
+        method: 'DELETE',
+        headers: {
+          'Cf-Access-Jwt-Assertion': access.token,
+        },
+      })
+      const res = await app.fetch(req, {
+        ...adminBindings(access, db),
+      })
+
+      expect(res.status).toBe(204)
+      expect(await res.text()).toBe('')
+      expect(deleteParams).toEqual([['contact-001']])
+    } finally {
+      restoreFetch()
+    }
+  })
+
+  test('returns 404 when deleting a missing admin lead', async () => {
+    const access = await createAccessTokenFixture()
+    const restoreFetch = installAccessJwksFixture(access)
+    const db = {
+      prepare: () => ({
+        bind: () => ({
+          run: async () => ({ meta: { changes: 0 }, success: true }),
+        }),
+      }),
+    } as unknown as D1Database
+
+    try {
+      const req = new Request('http://localhost/admin/leads/missing-contact', {
+        method: 'DELETE',
+        headers: {
+          'Cf-Access-Jwt-Assertion': access.token,
+        },
+      })
+      const res = await app.fetch(req, {
+        ...adminBindings(access, db),
+      })
+
+      expect(res.status).toBe(404)
+      expect(await res.json()).toEqual({
+        success: false,
+        error: 'Admin lead not found',
+      })
+    } finally {
+      restoreFetch()
+    }
+  })
+
+  test('rejects admin lead deletes without Access JWT before querying D1', async () => {
+    let prepareCalls = 0
+    const db = {
+      prepare: () => {
+        prepareCalls += 1
+        throw new Error('D1 should not be queried')
+      },
+    } as unknown as D1Database
+
+    const req = new Request('http://localhost/admin/leads/contact-001', {
+      method: 'DELETE',
+    })
+    const res = await app.fetch(req, {
+      ACCESS_POLICY_AUD: 'test-aud',
+      ACCESS_TEAM_DOMAIN: 'test.cloudflareaccess.com',
+      DB: db,
+      ENVIRONMENT: 'development',
+    })
+
+    expect(res.status).toBe(401)
+    expect(prepareCalls).toBe(0)
+  })
+
+  test('allows credentialed CORS preflight for admin lead DELETE requests', async () => {
+    const req = new Request('http://localhost/admin/leads/contact-001', {
+      method: 'OPTIONS',
+      headers: {
+        Origin: 'https://admin.vecta.co.jp',
+        'Access-Control-Request-Method': 'DELETE',
+      },
+    })
+    const res = await app.fetch(req, {
+      ADMIN_CORS_ALLOWED_ORIGINS: 'https://admin.vecta.co.jp',
+      ENVIRONMENT: 'development',
+    })
+
+    expect(res.status).toBe(204)
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe(
+      'https://admin.vecta.co.jp',
+    )
+    expect(res.headers.get('Access-Control-Allow-Credentials')).toBe('true')
+    expect(res.headers.get('Access-Control-Allow-Methods')).toContain('DELETE')
+  })
+
   test('allows credentialed CORS preflight for admin lead status PATCH requests', async () => {
     const req = new Request('http://localhost/admin/leads/contact-001/status', {
       method: 'OPTIONS',
