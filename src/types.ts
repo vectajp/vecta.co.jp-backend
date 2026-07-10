@@ -9,10 +9,34 @@ export const AdminLeadStatus = z.enum([
   'reviewing',
   'contacted',
   'closed',
-  'archived',
+  'ignored',
 ])
 
 export type AdminLeadStatus = z.infer<typeof AdminLeadStatus>
+
+export const AdminLeadStatusUpdateStatus = z.enum([
+  'new',
+  'reviewing',
+  'closed',
+  'ignored',
+])
+
+export type AdminLeadStatusUpdateStatus = z.infer<
+  typeof AdminLeadStatusUpdateStatus
+>
+
+export const AdminLeadStatusUpdate = z.object({
+  status: AdminLeadStatusUpdateStatus,
+})
+
+export const ContactStatus = z.enum([
+  'new',
+  'in_progress',
+  'completed',
+  'ignored',
+])
+
+export type ContactStatus = z.infer<typeof ContactStatus>
 
 export const AdminLead = z.object({
   id: z.string(),
@@ -64,7 +88,7 @@ export const Contact = z.object({
     example: 'サービスの詳細について教えてください。',
     description: 'お問い合わせ内容',
   }),
-  status: z.enum(['new', 'in_progress', 'completed']).default('new'),
+  status: ContactStatus.default('new'),
   created_at: DateTime(),
   updated_at: DateTime(),
 })

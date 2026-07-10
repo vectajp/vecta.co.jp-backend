@@ -2,6 +2,7 @@ import { fromHono } from 'chanfana'
 import { Hono } from 'hono'
 import { AdminLeadFetchAPI } from './endpoints/adminLeadFetch'
 import { AdminLeadListAPI } from './endpoints/adminLeadList'
+import { AdminLeadStatusUpdateAPI } from './endpoints/adminLeadStatusUpdate'
 import { ContactCreateAPI } from './endpoints/contactCreate'
 import { ContactFetchAPI } from './endpoints/contactFetch'
 import { ContactListAPI } from './endpoints/contactList'
@@ -38,6 +39,7 @@ const openapi = fromHono(app, {
 // Admin lead endpoints
 openapi.get('/admin/leads', AdminLeadListAPI)
 openapi.get('/admin/leads/:leadId', AdminLeadFetchAPI)
+openapi.patch('/admin/leads/:leadId/status', AdminLeadStatusUpdateAPI)
 
 // Contacts endpoints
 openapi.get('/contacts', ContactListAPI)

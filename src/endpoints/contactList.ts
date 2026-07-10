@@ -1,6 +1,6 @@
 import { OpenAPIRoute } from 'chanfana'
 import { z } from 'zod'
-import type { AppContext } from '../types'
+import { type AppContext, ContactStatus } from '../types'
 
 /**
  * お問い合わせ一覧取得エンドポイント
@@ -19,7 +19,7 @@ export class ContactListAPI extends OpenAPIRoute {
       query: z.object({
         page: z.number().int().min(1).default(1).describe('Page number'),
         status: z
-          .enum(['new', 'in_progress', 'completed'])
+          .enum(ContactStatus.options)
           .optional()
           .describe('Filter by status'),
       }),

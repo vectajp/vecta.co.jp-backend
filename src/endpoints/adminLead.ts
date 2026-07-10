@@ -1,4 +1,9 @@
-import type { AdminLeadData, AdminLeadStatus } from '../types'
+import type {
+  AdminLeadData,
+  AdminLeadStatus,
+  AdminLeadStatusUpdateStatus,
+  ContactStatus,
+} from '../types'
 import { parseAsTokyoTime } from '../utils/date'
 
 export type AdminLead = AdminLeadData
@@ -26,9 +31,26 @@ export function toAdminLeadStatus(status: string): AdminLeadStatus {
       return 'reviewing'
     case 'completed':
       return 'closed'
+    case 'ignored':
+      return 'ignored'
     case 'new':
       return 'new'
     default:
+      return 'new'
+  }
+}
+
+export function toContactStatus(
+  status: AdminLeadStatusUpdateStatus,
+): ContactStatus {
+  switch (status) {
+    case 'reviewing':
+      return 'in_progress'
+    case 'closed':
+      return 'completed'
+    case 'ignored':
+      return 'ignored'
+    case 'new':
       return 'new'
   }
 }
