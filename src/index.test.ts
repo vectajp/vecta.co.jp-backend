@@ -114,8 +114,12 @@ describe('Contacts API', () => {
   })
 })
 
+let accessFixtureIndex = 0
+
 async function createAccessTokenFixture() {
-  const issuer = 'https://test.cloudflareaccess.com'
+  accessFixtureIndex += 1
+  const teamDomain = `test-${accessFixtureIndex}.cloudflareaccess.com`
+  const issuer = `https://${teamDomain}`
   const audience = 'test-aud'
   const jwksUrl = `${issuer}/cdn-cgi/access/certs`
   const { publicKey, privateKey } = await generateKeyPair('RS256')
@@ -134,7 +138,36 @@ async function createAccessTokenFixture() {
     issuer,
     jwks: { keys: [{ ...jwk, alg: 'RS256', kid, use: 'sig' }] },
     jwksUrl,
+    teamDomain,
     token,
+  }
+}
+
+type AccessTokenFixture = Awaited<ReturnType<typeof createAccessTokenFixture>>
+
+function installAccessJwksFixture(access: AccessTokenFixture) {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = (async (
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ) => {
+    if (input.toString() === access.jwksUrl) {
+      return Response.json(access.jwks)
+    }
+    return originalFetch(input, init)
+  }) as typeof fetch
+
+  return () => {
+    globalThis.fetch = originalFetch
+  }
+}
+
+function adminBindings(access: AccessTokenFixture, db: D1Database) {
+  return {
+    ACCESS_POLICY_AUD: access.audience,
+    ACCESS_TEAM_DOMAIN: access.teamDomain,
+    DB: db,
+    ENVIRONMENT: 'development',
   }
 }
 
@@ -162,13 +195,7 @@ describe('Admin Leads API', () => {
 
   test('returns normalized contact leads with valid Access JWT', async () => {
     const access = await createAccessTokenFixture()
-    const originalFetch = globalThis.fetch
-    globalThis.fetch = (async (input: RequestInfo | URL) => {
-      if (input.toString() === access.jwksUrl) {
-        return Response.json(access.jwks)
-      }
-      return originalFetch(input)
-    }) as typeof fetch
+    const restoreFetch = installAccessJwksFixture(access)
 
     const rows = [
       {
@@ -214,10 +241,7 @@ describe('Admin Leads API', () => {
         },
       })
       const res = await app.fetch(req, {
-        ACCESS_POLICY_AUD: access.audience,
-        ACCESS_TEAM_DOMAIN: 'test.cloudflareaccess.com',
-        DB: db,
-        ENVIRONMENT: 'development',
+        ...adminBindings(access, db),
       })
 
       expect(res.status).toBe(200)
@@ -227,10 +251,10 @@ describe('Admin Leads API', () => {
           id: string
           sourceSite: string
           leadType: string
-          companyName: string
+          companyName?: string
           personName: string
           email: string
-          phone: string
+          phone?: string
           subject: string
           message: string
           status: string
@@ -270,7 +294,142 @@ describe('Admin Leads API', () => {
         },
       ])
     } finally {
-      globalThis.fetch = originalFetch
+      restoreFetch()
     }
+  })
+
+  test('updates an admin lead status to ignored with valid Access JWT', async () => {
+    const access = await createAccessTokenFixture()
+    const restoreFetch = installAccessJwksFixture(access)
+    const updatedRow = {
+      id: 'contact-001',
+      name: '山田太郎',
+      email: 'taro@example.com',
+      phone: '03-1234-5678',
+      company: 'テスト株式会社',
+      subject: '相談',
+      message: '問い合わせ本文',
+      status: 'ignored',
+      created_at: '2026-07-08 10:11:12',
+      updated_at: '2026-07-08 12:13:14',
+    }
+    const updateParams: unknown[][] = []
+    const db = {
+      prepare: (query: string) => ({
+        bind: (...params: unknown[]) => {
+          if (query.startsWith('UPDATE contacts')) {
+            updateParams.push(params)
+            return {
+              run: async () => ({ success: true }),
+            }
+          }
+
+          return {
+            first: async () => updatedRow,
+          }
+        },
+      }),
+    } as unknown as D1Database
+
+    try {
+      const req = new Request(
+        'http://localhost/admin/leads/contact-001/status',
+        {
+          method: 'PATCH',
+          headers: {
+            'Cf-Access-Jwt-Assertion': access.token,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ status: 'ignored' }),
+        },
+      )
+      const res = await app.fetch(req, {
+        ...adminBindings(access, db),
+      })
+
+      expect(res.status).toBe(200)
+      const json = (await res.json()) as {
+        success: boolean
+        data: {
+          id: string
+          status: string
+          updatedAt: string
+        }
+      }
+      expect(json).toMatchObject({
+        success: true,
+        data: {
+          id: 'contact-001',
+          status: 'ignored',
+          updatedAt: '2026-07-08T12:13:14+09:00',
+        },
+      })
+      expect(updateParams).toHaveLength(1)
+      expect(updateParams[0][0]).toBe('ignored')
+      expect(updateParams[0][2]).toBe('contact-001')
+    } finally {
+      restoreFetch()
+    }
+  })
+
+  test('rejects unsupported admin lead status values', async () => {
+    const access = await createAccessTokenFixture()
+    const restoreFetch = installAccessJwksFixture(access)
+    let prepareCalls = 0
+    const db = {
+      prepare: () => {
+        prepareCalls += 1
+        throw new Error('D1 should not be queried')
+      },
+    } as unknown as D1Database
+
+    try {
+      const req = new Request(
+        'http://localhost/admin/leads/contact-001/status',
+        {
+          method: 'PATCH',
+          headers: {
+            'Cf-Access-Jwt-Assertion': access.token,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ status: 'archived' }),
+        },
+      )
+      const res = await app.fetch(req, {
+        ...adminBindings(access, db),
+      })
+
+      expect(res.status).toBe(400)
+      expect(prepareCalls).toBe(0)
+    } finally {
+      restoreFetch()
+    }
+  })
+
+  test('rejects admin lead status updates without Access JWT before querying D1', async () => {
+    let prepareCalls = 0
+    const db = {
+      prepare: () => {
+        prepareCalls += 1
+        throw new Error('D1 should not be queried')
+      },
+    } as unknown as D1Database
+
+    const req = new Request('http://localhost/admin/leads/contact-001/status', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status: 'ignored' }),
+    })
+    const res = await app.fetch(req, {
+      ACCESS_POLICY_AUD: 'test-aud',
+      ACCESS_TEAM_DOMAIN: 'test.cloudflareaccess.com',
+      DB: db,
+      ENVIRONMENT: 'development',
+    })
+
+    expect(res.status).toBe(401)
+    expect(prepareCalls).toBe(0)
   })
 })

@@ -14,6 +14,23 @@ export const AdminLeadStatus = z.enum([
 
 export type AdminLeadStatus = z.infer<typeof AdminLeadStatus>
 
+export const AdminLeadStatusUpdateStatus = z.enum([
+  'new',
+  'reviewing',
+  'closed',
+  'ignored',
+])
+
+export type AdminLeadStatusUpdateStatus = z.infer<
+  typeof AdminLeadStatusUpdateStatus
+>
+
+export const AdminLeadStatusUpdate = z.object({
+  status: AdminLeadStatusUpdateStatus,
+})
+
+export type AdminLeadStatusUpdateData = z.infer<typeof AdminLeadStatusUpdate>
+
 export const ContactStatus = z.enum([
   'new',
   'in_progress',
