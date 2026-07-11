@@ -2,6 +2,7 @@ import { OpenAPIRoute } from 'chanfana'
 import { nanoid } from 'nanoid'
 import { z } from 'zod'
 import { sendContactEmail } from '../services/email'
+import { checkIgnoredCompanyEmail } from '../services/ignored-company-registry'
 import type { AppContext } from '../types'
 import { ContactCreate } from '../types'
 import { formatDateJapanese, now } from '../utils/date'
@@ -72,6 +73,17 @@ export class ContactCreateAPI extends OpenAPIRoute {
           },
         },
       },
+      '503': {
+        description: 'Ignored company Registry unavailable',
+        content: {
+          'application/json': {
+            schema: z.object({
+              success: z.boolean(),
+              error: z.string(),
+            }),
+          },
+        },
+      },
     },
   }
 
@@ -88,6 +100,24 @@ export class ContactCreateAPI extends OpenAPIRoute {
       const data = await this.getValidatedData<typeof this.schema>()
       const contactData = data.body
 
+      let ignored: boolean
+      try {
+        const registryResult = await checkIgnoredCompanyEmail(
+          c.env.IGNORED_COMPANY_REGISTRY,
+          contactData.email,
+        )
+        ignored = registryResult.ignored
+      } catch (error) {
+        console.error('Ignored company Registry lookup failed:', error)
+        return c.json(
+          {
+            success: false,
+            error: '一時的に受付できません。時間をおいて再度お試しください。',
+          },
+          503,
+        )
+      }
+
       const currentTime = now()
       const id = nanoid()
 
@@ -99,7 +129,7 @@ export class ContactCreateAPI extends OpenAPIRoute {
         company: contactData.company || null,
         subject: contactData.subject,
         message: contactData.message,
-        status: 'new',
+        status: ignored ? 'ignored' : 'new',
         created_at: currentTime,
         updated_at: currentTime,
       }
@@ -132,27 +162,28 @@ export class ContactCreateAPI extends OpenAPIRoute {
         )
       }
 
-      // メール送信
-      try {
-        await sendContactEmail(
-          {
-            name: contact.name,
-            email: contact.email,
-            subject: contact.subject,
-            message: contact.message,
-            submittedAt: formatDateJapanese(contact.created_at),
-          },
-          c.env,
-        )
-      } catch (emailError) {
-        // メール送信に失敗してもレスポンスは成功として返す（データは保存されているため）
-        console.error('Failed to send email notification:', emailError)
+      if (!ignored) {
+        try {
+          await sendContactEmail(
+            {
+              name: contact.name,
+              email: contact.email,
+              subject: contact.subject,
+              message: contact.message,
+              submittedAt: formatDateJapanese(contact.created_at),
+            },
+            c.env,
+          )
+        } catch (emailError) {
+          // メール送信に失敗してもレスポンスは成功として返す（データは保存されているため）
+          console.error('Failed to send email notification:', emailError)
+        }
       }
 
       return c.json(
         {
           success: true,
-          data: contact,
+          data: { ...contact, status: 'new' },
         },
         201,
       )

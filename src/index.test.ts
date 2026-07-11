@@ -14,6 +14,34 @@ const mockDB = {
   }),
 } as unknown as D1Database
 
+function createRegistryBinding(ignored = false, checkedEmails: string[] = []) {
+  return {
+    fetch: async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = (await new Response(init?.body).json()) as { email: string }
+      checkedEmails.push(body.email)
+      return Response.json({
+        success: true,
+        data: { domain: 'example.com', ignored },
+      })
+    },
+  } as unknown as Fetcher
+}
+
+function createContactRequest(email = 'taro@example.com') {
+  return new Request('http://localhost/contacts', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      name: '山田太郎',
+      email,
+      subject: 'お問い合わせテスト',
+      message: 'これはテストメッセージです。',
+    }),
+  })
+}
+
 describe('Vecta Backend API', () => {
   test('responds with OpenAPI docs at root', async () => {
     const req = new Request('http://localhost/')
@@ -38,52 +66,143 @@ describe('Contacts API', () => {
     expect(res.status).toBe(200)
   })
 
-  test('creates a new contact in development', async () => {
-    const mockRunSuccess = {
+  test('creates new and sends one notification for an unregistered domain', async () => {
+    const insertParams: unknown[][] = []
+    const db = {
       prepare: () => ({
-        bind: () => ({
-          run: async () => ({ success: true }),
-        }),
+        bind: (...params: unknown[]) => {
+          insertParams.push(params)
+          return {
+            run: async () => ({ success: true }),
+          }
+        },
       }),
     } as unknown as D1Database
+    const checkedEmails: string[] = []
+    const mailRequests: unknown[] = []
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async (_input, init) => {
+      mailRequests.push(init?.body)
+      return new Response(null, { status: 202 })
+    }) as typeof fetch
 
-    const req = new Request('http://localhost/contacts', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: '山田太郎',
-        email: 'taro@example.com',
-        subject: 'お問い合わせテスト',
-        message: 'これはテストメッセージです。',
-      }),
-    })
+    try {
+      const res = await app.fetch(createContactRequest(), {
+        DB: db,
+        ENVIRONMENT: 'development',
+        IGNORED_COMPANY_REGISTRY: createRegistryBinding(false, checkedEmails),
+        MAIL_FROM: 'noreply@example.com',
+        MAIL_TO: 'contact@example.com',
+        SENDGRID_API_KEY: 'test-sendgrid-key',
+      })
 
-    const res = await app.fetch(req, {
-      DB: mockRunSuccess,
-      ENVIRONMENT: 'development',
-    })
-
-    expect(res.status).toBe(201)
-    const json = (await res.json()) as {
-      success: boolean
-      data: {
-        id: string
-        name: string
-        email: string
-        phone: string | null
-        company: string | null
-        subject: string
-        message: string
-        status: string
-        created_at: string
-        updated_at: string
+      expect(res.status).toBe(201)
+      const json = (await res.json()) as {
+        success: boolean
+        data: { email: string; name: string; status: string }
       }
+      expect(json.success).toBe(true)
+      expect(json.data.name).toBe('山田太郎')
+      expect(json.data.email).toBe('taro@example.com')
+      expect(json.data.status).toBe('new')
+      expect(checkedEmails).toEqual(['taro@example.com'])
+      expect(insertParams[0]).toContain('new')
+      expect(mailRequests).toHaveLength(1)
+    } finally {
+      globalThis.fetch = originalFetch
     }
-    expect(json.success).toBe(true)
-    expect(json.data.name).toBe('山田太郎')
-    expect(json.data.email).toBe('taro@example.com')
+  })
+
+  test('stores ignored and sends no email for a registered company', async () => {
+    const insertParams: unknown[][] = []
+    const db = {
+      prepare: () => ({
+        bind: (...params: unknown[]) => {
+          insertParams.push(params)
+          return { run: async () => ({ success: true }) }
+        },
+      }),
+    } as unknown as D1Database
+    const mailRequests: unknown[] = []
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async (_input, init) => {
+      mailRequests.push(init?.body)
+      return new Response(null, { status: 202 })
+    }) as typeof fetch
+
+    try {
+      const res = await app.fetch(createContactRequest('user@example.com'), {
+        DB: db,
+        ENVIRONMENT: 'development',
+        IGNORED_COMPANY_REGISTRY: createRegistryBinding(true),
+        MAIL_FROM: 'noreply@example.com',
+        MAIL_TO: 'contact@example.com',
+        SENDGRID_API_KEY: 'test-sendgrid-key',
+      })
+
+      expect(res.status).toBe(201)
+      const json = (await res.json()) as { data: { status: string } }
+      expect(json.data.status).toBe('new')
+      expect(insertParams[0]).toContain('ignored')
+      expect(mailRequests).toHaveLength(0)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  test('fails closed before D1 and mail when Registry is unavailable', async () => {
+    let prepareCalls = 0
+    const db = {
+      prepare: () => {
+        prepareCalls += 1
+        throw new Error('D1 must not be called')
+      },
+    } as unknown as D1Database
+    const registry = {
+      fetch: async () => {
+        throw new Error('unavailable')
+      },
+    } as unknown as Fetcher
+    let mailCalls = 0
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async () => {
+      mailCalls += 1
+      return new Response(null, { status: 202 })
+    }) as unknown as typeof fetch
+
+    try {
+      const res = await app.fetch(createContactRequest('user@example.com'), {
+        DB: db,
+        ENVIRONMENT: 'development',
+        IGNORED_COMPANY_REGISTRY: registry,
+      })
+
+      expect(res.status).toBe(503)
+      expect(prepareCalls).toBe(0)
+      expect(mailCalls).toBe(0)
+      const json = (await res.json()) as {
+        success: boolean
+        error: string
+      }
+      expect(json).toEqual({
+        success: false,
+        error: '一時的に受付できません。時間をおいて再度お試しください。',
+      })
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  test('validates the request before calling Registry', async () => {
+    const checkedEmails: string[] = []
+    const res = await app.fetch(createContactRequest('invalid'), {
+      DB: mockDB,
+      ENVIRONMENT: 'development',
+      IGNORED_COMPANY_REGISTRY: createRegistryBinding(false, checkedEmails),
+    })
+
+    expect(res.status).toBe(500)
+    expect(checkedEmails).toHaveLength(0)
   })
 
   test('requires API key for contacts endpoint in production', async () => {
