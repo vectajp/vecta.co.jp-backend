@@ -47,6 +47,8 @@ uses:
 - **OpenAPI**: Chanfana, served from `/`
 - **Validation**: Zod schemas in `src/types.ts`
 - **Database**: Cloudflare D1, bound as `DB` in `wrangler.jsonc`
+- **Ignored company Registry**: private Worker bound as
+  `IGNORED_COMPANY_REGISTRY`
 - **Mail delivery**: SendGrid REST API through `src/services/mail-service.ts`
 - **Testing**: Bun test with mocked D1 bindings
 - **Code quality**: Biome for linting and formatting
@@ -84,9 +86,16 @@ There are no active `tasks` endpoints in the current codebase.
 
 ### Contact Data Flow
 
-`POST /contacts` validates the request body, generates an ID with `nanoid`,
-stores the inquiry in D1, then sends an email notification. Email delivery errors
-are logged, but the API still returns success if the database insert succeeded.
+`POST /contacts` validates the request body, checks the email with the private
+ignored-company Registry through a Service Binding, stores the inquiry in D1,
+then sends an email notification. Registry lookup happens before `nanoid`, D1,
+and SendGrid. If the Registry is unavailable, the endpoint fails closed with
+`503` before saving or sending mail. Email delivery errors after a successful D1
+insert are logged, but the API still returns success.
+
+Registered company domains are stored with initial status `ignored` and skip
+the notification email. The public success response keeps status `new` so the
+form does not reveal suppression behavior.
 
 The `contacts` table stores:
 
@@ -116,6 +125,9 @@ The `contacts` table stores:
 - **Biome**: 2-space indentation, single quotes, semicolons as needed
 - **Custom domain**: `api.vecta.co.jp`
 - **D1 database**: `prod-db-vectacojp` bound as `DB`
+- **Registry binding**: `IGNORED_COMPANY_REGISTRY` is a Service Binding, not a
+  browser secret. Deploy `vecta-ignored-company-registry` and apply its D1
+  migration before deploying this Worker.
 - **Production mail variables**: `MAIL_FROM` and `MAIL_TO` are defined in
   `wrangler.jsonc`; `SENDGRID_API_KEY` must be a secret
 - **Admin Access variables**: `ACCESS_TEAM_DOMAIN`, `ACCESS_POLICY_AUD`,
