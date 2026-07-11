@@ -544,7 +544,11 @@ describe('Admin Leads API', () => {
       })
 
       expect(res.status).toBe(404)
-      expect(await res.json()).toEqual({
+      const json = (await res.json()) as {
+        success: boolean
+        error: string
+      }
+      expect(json).toEqual({
         success: false,
         error: 'Admin lead not found',
       })
