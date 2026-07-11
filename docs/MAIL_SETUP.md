@@ -4,7 +4,7 @@
 
 ## 概要
 
-本システムでは、SendGrid APIを使用してメール送信を行います。お問い合わせが投稿されると、指定されたメールアドレスに通知メールが自動送信されます。
+本システムでは、SendGrid APIを使用してメール送信を行います。問い合わせの保存前にスルー企業 Registry を照会し、未登録企業の場合だけ指定されたメールアドレスへ通知します。
 
 ### 特徴
 
@@ -83,6 +83,10 @@ bun x wrangler secret put SENDGRID_API_KEY
 
 `src/endpoints/contactCreate.ts`でお問い合わせ保存後に自動的にメール送信が実行されます：
 
+- 処理順は `request validation → Registry → D1 → SendGrid`
+- Registry 登録済み企業は D1 に初期 `ignored` として保存し、通知メールを送信しない
+- 登録済み企業の公開 response は通常受付と同じ `new` を返す
+- Registry 障害時は未保存・未送信のまま `503` を返す
 - データベース保存が成功した場合のみメール送信
 - メール送信に失敗してもAPIレスポンスは成功を返す（データは保存済みのため）
 - エラーログは記録される
@@ -91,12 +95,19 @@ bun x wrangler secret put SENDGRID_API_KEY
 
 ### ローカル環境でのテスト
 
-1. 開発サーバーを起動：
+1. `vecta-admin` で Registry Worker と local D1 を起動：
+   ```bash
+   cd ../vecta-admin
+   bun run registry:db:migrate:local
+   bun run registry:dev
+   ```
+
+2. 別 terminal で backend を起動：
    ```bash
    bun run dev
    ```
 
-2. `test-contact-email.http`ファイルのリクエストを実行：
+3. `test-contact-email.http`ファイルのリクエストを実行：
    ```http
    POST http://localhost:8787/contacts
    Content-Type: application/json
@@ -111,6 +122,7 @@ bun x wrangler secret put SENDGRID_API_KEY
 
 ### 注意事項
 
+- Registry D1 migration / Worker をこの backend より先に deploy してください
 - SendGridの無料プランでは1日100通までの送信制限があります
 - メール送信のログはCloudflare WorkersのログとSendGridのダッシュボードで確認できます
 - Reply-Toヘッダーにより、Google Workspaceメールから直接お問い合わせ者に返信できます

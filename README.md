@@ -29,6 +29,11 @@ Cloudflare Workers で稼働します。
    - SQLiteベースのサーバーレスデータベース
    - エッジでの高速データアクセス
 
+4. **スルー企業 Registry** (`vecta-ignored-company-registry`)
+   - `vecta.co.jp` と `swarrow.com` で共通利用する企業ドメイン判定
+   - 専用 D1 を source of truth とし、`IGNORED_COMPANY_REGISTRY` Service Binding 経由で照会
+   - public route や browser secret を持たない非公開 Worker
+
 ## 技術スタック
 
 - **バックエンドフレームワーク**: [Honoフレームワーク](https://hono-ja.pages.dev/)
@@ -36,6 +41,7 @@ Cloudflare Workers で稼働します。
 - **データベース**: Cloudflare D1
 - **認証**: APIキー認証、Cloudflare Access JWT 認証（詳細は[セキュリティ設定](docs/SECURITY.md)を参照）
 - **メール送信**: SendGrid（詳細は[メール設定](docs/MAIL_SETUP.md)を参照）
+- **企業スルー判定**: Cloudflare Workers Service Binding
 
 ## 開発方法
 
@@ -61,11 +67,32 @@ openssl rand -base64 32
 
 ### 開発サーバーの起動
 
+先に `vecta-admin` リポジトリで Registry の local D1 と Worker を起動します。
+
+```bash
+cd ../vecta-admin
+bun run registry:db:migrate:local
+bun run registry:dev
+```
+
+別 terminal でこの backend を起動します。
+
 ```bash
 bun run dev
 ```
 
 開発サーバーが起動したら、ブラウザで [http://localhost:8787](http://localhost:8787) にアクセスしてください。
+
+### 公開問い合わせフロー
+
+`POST /contacts` は次の順序で処理します。
+
+1. request validation
+2. `IGNORED_COMPANY_REGISTRY` でメールドメインを照会
+3. Cloudflare D1 へ保存
+4. 未登録企業の場合だけ SendGrid で通知
+
+登録済み企業は D1 に初期 `ignored` として保存し、通知メールを送信しません。公開 success response の status は通常受付と同じ `new` を返し、抑止対象であることをフォームへ開示しません。Registry を照会できない場合は、D1 保存・メール送信前に `503` を返して fail closed します。
 
 ### APIドキュメント
 
@@ -132,6 +159,8 @@ sqlite3 .wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite
 ```
 
 ### デプロイ
+
+`vecta-admin` が所有する Registry D1 migration と `vecta-ignored-company-registry` Worker を先に deploy してください。Service Binding の target が利用可能になってから、この backend を deploy します。
 
 このリポジトリはCloudflareと連携しているため、mainブランチへのプッシュで自動的にデプロイされます。
 

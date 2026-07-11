@@ -38,13 +38,24 @@
 
 `vecta-admin` のブラウザコードには `X-API-Key`、Cloudflare API token、D1 認証情報を入れないでください。
 
-### 4. Refererチェック（オプション）
+### 4. スルー企業 Registry Service Binding
+
+`POST /contacts` は、非公開の `vecta-ignored-company-registry` Worker を `IGNORED_COMPANY_REGISTRY` Service Binding 経由で呼び出します。
+
+- Service Binding は browser secret ではなく、Worker 間の内部 binding です。
+- Registry Worker に public route、`workers.dev`、preview URL を追加しないでください。
+- browser から Registry Worker または専用 D1 へ直接接続しないでください。
+- Registry の応答が non-2xx、不正 JSON、不正 schema、または binding error の場合、D1 保存・SendGrid 呼び出し前に `503` を返します。
+- production / preview では、それぞれ対応する Registry Worker / D1 を使い、preview から production Registry へ接続しないでください。
+- deploy 順は `Registry D1 migration → Registry Worker → この backend` です。
+
+### 5. Refererチェック（オプション）
 - 環境変数 `ALLOWED_REFERERS` で許可するRefererを設定可能
 - カンマ区切りで複数のRefererを指定可能
 - 未設定の場合はすべてのリクエストを拒否
 - refererCheckミドルウェアを使用して追加のセキュリティ層として実装
 
-### 5. 環境変数の設定
+### 6. 環境変数の設定
 
 #### 開発環境（.dev.vars）
 ```
@@ -66,7 +77,7 @@ bun wrangler secret put API_KEY
 
 Cloudflare Access 用の値は、production の deployment 環境変数または Worker secret として設定してください。実値は repository に保存しません。
 
-### 6. 公開フォームの実装例
+### 7. 公開フォームの実装例
 
 ```javascript
 const API_BASE_URL = 'https://api.vecta.co.jp'
@@ -88,4 +99,3 @@ async function submitContact(contactData) {
   return response.json()
 }
 ```
-
